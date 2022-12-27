@@ -22,8 +22,8 @@ import matplotlib.pyplot as plt
 
 import time
 
-from module_aqwa import *
-
+from module_aqwa import countomega, readomega, readrao, readcoeff
+from module_simul import *
 
 def plocmp(om,rao,raoi,TIT,chn,vdeg):
 
@@ -247,8 +247,10 @@ for ir in range(nd):
 #        ktt,_ = scs.impulse((Ar[ir,ic],Br[ir,ic],Cr[ir,ic],Dr[ir,ic]),T=tt)
 #        ktt = np.append(np.zeros(len(tt)-1),ktt)
 #        ktr[ir,ic] = 1/Fs*ktt
-        ktr[ir,ic] = w/Fs*ktfn(tc,om,B[:,ir,ic])
-
+        fb = sci.interp1d(om,B[:,ir,ic])
+        omn = np.linspace(min(om),max(om),101)
+#        ktr[ir,ic] = w/Fs*ktfn(tc,om,B[:,ir,ic])
+        ktr[ir,ic] = w/Fs*ktf(omn,fb(omn),tc)
 #### Solver
 print('Number of time steps: %i'%ns)
 mot,vel,fr = solve(ns+nc+1,Fs,Tc,fe,M+As,Bs,C,ktr)

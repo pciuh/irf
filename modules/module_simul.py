@@ -7,6 +7,8 @@ import scipy.optimize as sco
 import scipy.signal as scs
 import scipy.stats as sct
 
+from module_aqwa import Jonswap
+
 def adminf(om,A,B):
 
     Tc,Fs = (100,10)
@@ -35,10 +37,10 @@ def befun(p,om):
     return p[0]/np.exp(p[1]*om)
 
 def bfun(p,t):
-    return p[0]/t**2+p[1]/t**4+p[2] #/t**8
+    return p[0]/t**2+p[1]/t**4 #+p[2] #/t**8
 
 def res_b(p,om,B):
-    res = np.abs(befun(p,om) - B)**.5
+    res = np.abs(bfun(p,om) - B)**.5
     return res
 
 def res_a(p,om,A):
@@ -56,29 +58,23 @@ def approx(om,B,dom,omE,per):
 
     nB = int(per*nom)
     nB = 2
-    inb = [-2,-1]
+    inb = np.arange(-3,0)
 
     norm = max(B)
     B = B/norm
     x,y = om[inb],B[inb]
 
-    oMin = np.ceil(min(om)/dom)*dom
-    omo = np.arange(oMin,x[0],dom)
-    KND = 'linear'
-    f = sci.interp1d(om,B,kind=KND)
-    Bo = f(omo)
 
-    oMin = np.floor(x[0]/dom)*dom
-    omx = np.arange(oMin,omE,dom)
+    ome = np.arange(x[-1],omE,dom)+dom
 
     p0 = [1,1]
 
     METHOD,LOSS = 'trf','soft_l1'
     res = sco.least_squares(res_b,p0,args=(x,y),method=METHOD,loss=LOSS)
 
-    po = res['x']
-    Bx = befun(po,omx)
-
+    po = res['x']*norm
+    B = B*norm
+    Be = bfun(po,ome)
     print('pars:',po)
     #if per==0:
         #p0 = [1,0]
@@ -93,10 +89,13 @@ def approx(om,B,dom,omE,per):
         #po = res['x']
         #Bx = afun(po,omx)
 
-    omo = np.append(omo,omx)
-    Bo  = np.append(Bo,Bx)
+    KND = 'linear'
+    omx = np.append(om,ome)
+    Bx = np.append(B,Be)
+    fb = sci.interp1d(omx,Bx,kind=KND,bounds_error=False,fill_value=B[0])
+    omo = np.arange(dom,omE,dom)
 
-    return(omo,Bo*norm)
+    return(omo,fb(omo))
 
 def damfn(p,s):
     P,Q = (0,0)
@@ -131,22 +130,30 @@ def admf(s,*p):
     Q = Q + s**(len(p)+2)
     return(P/Q)
 
-def ktf(tim,om,B):
-    kt = []
-    for t in tim:
-        kt = np.append(kt,2/np.pi*scn.simps(B*np.cos(om*t),om))
-    return(kt)
+#def ktf(tim,om,B):
+    #kt = []
+    #for t in tim:
+        #kt = np.append(kt,2/np.pi*scn.simps(B*np.cos(om*t),om))
+    #return(kt)
+
+def ktf(om,B,tc):
+    N = len(tc)
+    omo = np.linspace(min(om),max(om),N)
+    dom = omo[2] - omo[1]
+    fb = sci.interp1d(om,B)
+    Bo = fb(omo)
+    omo = omo.reshape((N,1))
+    ct = np.cos(omo*tc)
+    return 2*dom/np.pi*(Bo@ct)
 
 def ktfn(tim,om,B):
     kt = []
-    omo = np.linspace(min(om),max(om),101)
-    fb = sci.interp1d(om,B)
     for t in tim:
         if t == 0:
             M = 2
         else:
             M = 1
-        fkt = (M+np.sign(t))/np.pi*scn.simps(fb(omo)*np.cos(omo*t),omo)
+        fkt = (M+np.sign(t))/np.pi*scn.simps(B*np.cos(om*t),om)
         #kt = np.append(kt,2/np.pi*scn.simps(B*np.cos(om*t),om))
         kt = np.append(kt,fkt)
     return(kt)

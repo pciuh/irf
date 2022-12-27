@@ -84,6 +84,10 @@ if omE > No*np.pi:
     omE = No*np.pi
 
 dom = 1e-3
+omE = np.round(omE/dom)*dom
+
+print('Omega.Ext:',omE)
+
 t  = np.arange(0,Tc,1/Fs)
 w = scs.tukey(len(t),1/6)
 w = np.ones(len(t))
@@ -156,8 +160,8 @@ for ir in range(6):
             Ainfty,Aint = adminf(om,Ax,Bx)
 
             print('%i%i:'%(ir+1,ic+1))
-            oma,An = approx(om,Ax-Ainfty,dom,omE,per=aPer)
-            An = An + Ainfty
+            #oma,An = approx(om,Ax-Ainfty,dom,omE,per=aPer)
+            #An = An + Ainfty
             #### Impulse response function in time domain
             #if ir!=ic:
             #    Bx = 1/2*(B[:,ir,ic]+B[:,ir,ic])
@@ -168,13 +172,14 @@ for ir in range(6):
             #PER = 0.0
             omn,Bn = approx(om,Bx,dom,omE,per=bPer)
 
-            omo = np.linspace(min(om),omE-dom,101)
-            fa,fb = sci.interp1d(oma,An,kind='quadratic'),sci.interp1d(omn,Bn,kind='quadratic')
+#            omo = np.linspace(min(om),omE-dom,101)
+#            fa,fb = sci.interp1d(oma,An,kind='quadratic'),sci.interp1d(omn,Bn,kind='quadratic')
 
             Ainf[ir,ic] = Ainfty
 
-            ktn = w*ktfn(t,omn,Bn)
-            TF,SS = era_sys(ktn,Fs,NS,False)
+            ktn = ktfn(t,omn,Bn)
+            ktd = ktf(omn,Bn,t)
+            TF,SS = era_sys(ktd,Fs,NS,False)
 
             th,kth = scs.impulse(SS,T=t)
             Ak,Bk = komfn(th,om,kth,Ainfty,0)
@@ -189,6 +194,7 @@ for ir in range(6):
 
             idx = tuple(ind[i])
             ax[idx].plot(t,ktn,label='AQWA+extrap',alpha=.5,lw=2.5)
+            ax[idx].plot(t,ktd,lw=1.25)
             ax[idx].plot(th,kth,'--r',label='ERA',lw=1.)
             ax[idx].set_ylabel(r'$k_{%i%i}$'%(ir+1,ic+1))
             ax[idx].ticklabel_format(axis='y',useMathText=True,scilimits=(0,0))
@@ -198,8 +204,8 @@ for ir in range(6):
             #af[idx].plot(oma,An,'--r',label='AQWA+extrap',lw=1.5)
             af[idx].plot(om,Ak,'--r',label='Approx',lw=1.5)
             #af[idx].plot(Aint[0],Aint[1],label='Interp',lw=1.)
-            af[idx].hlines(Ainf[ir,ic],min(omo),max(omo),ls='--',color='#000000bb',lw=.5)
-            af[idx].annotate(r'$A_{\infty}$:%4.2e'%Ainf[ir,ic],(max(omo),Ainf[ir,ic]),va='bottom',ha='right')
+            af[idx].hlines(Ainf[ir,ic],min(omn),max(omn),ls='--',color='#000000bb',lw=.5)
+            af[idx].annotate(r'$A_{\infty}$:%4.2e'%Ainf[ir,ic],(max(omn),Ainf[ir,ic]),va='bottom',ha='right')
             af[idx].set_ylabel(r'$A_{%i%i}$'%(ir+1,ic+1))
             af[idx].set_xscale('log')
             af[idx].ticklabel_format(axis='y',useMathText=True,scilimits=(0,0))

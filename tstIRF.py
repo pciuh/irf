@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 import time
 
 from module_aqwa import *
+from module_simul import synth
 
 def plores(om,rao,raoi,TIT,chn,vdeg):
 
