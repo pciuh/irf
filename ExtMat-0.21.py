@@ -16,7 +16,8 @@ import matplotlib.pyplot as plt
 
 import time
 
-from module_aqwa import *
+from module_aqwa import countomega, readomega, readrao, readcoeff
+from module_simul import *
 
 def mirmat(At):
     Ar = np.rot90(np.fliplr(At),1)
