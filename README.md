@@ -1,2 +1,2 @@
 # irf
-Impulse Response Function for seakeeping simulation
+Impulse Response Function for seakeeping simulation. First attempt.
