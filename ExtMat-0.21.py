@@ -33,7 +33,7 @@ cDir = 'coeff/'
 
 MIR = False
 
-NS = 13    #### Maximum degree of State Space Model
+NS = 17    #### Maximum degree of State Space Model
 
 MU = 120.0
 VS = 14.0
@@ -98,18 +98,7 @@ M,C = (mm['IM'],cm['SM'])
 lbl = ['xx','yy','zz','rx','ry','rz']
 Pxx =[]
 
-v = np.array([11,22,33,44,55,66,13,15,24,26,35,42,46,51,53,62,64])
-print(v)
-v =[]
-for ir in range(6):
-    for ic in range(6):
-        ter,tec = ir%2,ic%2
-        if ter==tec:
-            v = np.append(v,(ir+1)*10+ic+1)
-v = v.astype('int32')
-
-nv = len(v)
-nc = 3
+nv = 12,3
 nr = int(nv/nc)
 ind = np.concatenate((np.tile(np.arange(nr),nc),np.repeat(np.arange(nc),nr)),axis=0).reshape(2,-1).T
 
@@ -151,8 +140,9 @@ for ir in range(6):
     for ic in range(6):
 
         num = (ir+1)*10+ic+1
+        er,ec = ir%2,ic%2
 
-        if np.any(v==num):
+        if er == ec:
 
             Ax,Bx = A[:,ic,ir],B[:,ic,ir]
 
@@ -160,20 +150,8 @@ for ir in range(6):
             Ainfty,Aint = adminf(om,Ax,Bx)
 
             print('%i%i:'%(ir+1,ic+1))
-            #oma,An = approx(om,Ax-Ainfty,dom,omE,per=aPer)
-            #An = An + Ainfty
-            #### Impulse response function in time domain
-            #if ir!=ic:
-            #    Bx = 1/2*(B[:,ir,ic]+B[:,ir,ic])
-            #else:
-            #if num == 35:
 
-            #else:
-            #PER = 0.0
-            omn,Bn = approx(om,Bx,dom,omE,per=bPer)
-
-#            omo = np.linspace(min(om),omE-dom,101)
-#            fa,fb = sci.interp1d(oma,An,kind='quadratic'),sci.interp1d(omn,Bn,kind='quadratic')
+            omn,An,Bn = approx(om,Ax,Bx,dom,omE)
 
             Ainf[ir,ic] = Ainfty
 
@@ -201,7 +179,7 @@ for ir in range(6):
             fig.tight_layout(w_pad=.5,h_pad=.5)
 
             af[idx].scatter(om,Ax,alpha=.3)
-            #af[idx].plot(oma,An,'--r',label='AQWA+extrap',lw=1.5)
+            af[idx].plot(omn,An,label='AQWA+extrap',lw=1.5)
             af[idx].plot(om,Ak,'--r',label='Approx',lw=1.5)
             #af[idx].plot(Aint[0],Aint[1],label='Interp',lw=1.)
             af[idx].hlines(Ainf[ir,ic],min(omn),max(omn),ls='--',color='#000000bb',lw=.5)

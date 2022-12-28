@@ -30,11 +30,8 @@ def adminf(om,A,B):
     return(Ainf/len(omo),(omo,Ao))
 
 def afun(p,t):
-    return p[0]/t**2+p[1]/t**4-p[2]/t**5
-
-def befun(p,om):
-#    return p[0]*np.exp(p[1]*(om-0*p[2]))
-    return p[0]/np.exp(p[1]*om)
+    N = 5
+    return p[1]*t**N/(t**N+p[0])
 
 def bfun(p,t):
     return p[0]/t**2+p[1]/t**4 #+p[2] #/t**8
@@ -44,58 +41,44 @@ def res_b(p,om,B):
     return res
 
 def res_a(p,om,A):
-    res = np.abs(befun(p,om) - A)**.5
+    res = np.abs(afun(p,om) - A)**.5
     return res
 
-def approx(om,B,dom,omE,per):
+def approx(om,A,B,dom,omE):
 
-    nom = len(B)
-    k = np.where(B==max(B))[0][0]
-    if per==0:
-        per = 1-(k+int(nom/20))/nom
-    if per<.25:
-        per = .25
-
-    nB = int(per*nom)
-    nB = 2
     inb = np.arange(-3,0)
 
-    norm = max(B)
-    B = B/norm
-    x,y = om[inb],B[inb]
-
+    norma, normb = max(A), max(B)
+    A, B = A/norma, B/normb
+    x,ya,yb = om[inb],A[inb],B[inb]
 
     ome = np.arange(x[-1],omE,dom)+dom
 
     p0 = [1,1]
-
     METHOD,LOSS = 'trf','soft_l1'
-    res = sco.least_squares(res_b,p0,args=(x,y),method=METHOD,loss=LOSS)
+    res = sco.least_squares(res_a,p0,args=(x,ya),method=METHOD,loss=LOSS)
+    pa = res['x']
+    pa[-1] = pa[-1]*norma
+    print('A.param:',pa)
+    A = A*norma
+    Ae = afun(pa,ome)
 
-    po = res['x']*norm
-    B = B*norm
-    Be = bfun(po,ome)
-    print('pars:',po)
-    #if per==0:
-        #p0 = [1,0]
-        #METHOD,LOSS = 'trf','soft_l1'
-        #res = sco.least_squares(res_b,p0,args=(x,y),method=METHOD,loss=METHOD)
-        #po = res['x']
-        #Bx = befun(po,omx)
-    #else:
-        #p0 = [1,1,0]
-        #res = sco.least_squares(res_a,p0,args=(x,y),method='lm',loss='linear')
-#
-        #po = res['x']
-        #Bx = afun(po,omx)
+    res = sco.least_squares(res_b,p0,args=(x,yb),method=METHOD,loss=LOSS)
+    pb = res['x']*normb
+    print('B.param:',pb)
+    B = B*normb
+    Be = bfun(pb,ome)
 
     KND = 'linear'
     omx = np.append(om,ome)
-    Bx = np.append(B,Be)
+    Ax, Bx = np.append(A,Ae), np.append(B,Be)
+
+    fa = sci.interp1d(omx,Ax,kind=KND,bounds_error=False,fill_value=A[0])
     fb = sci.interp1d(omx,Bx,kind=KND,bounds_error=False,fill_value=B[0])
+
     omo = np.arange(dom,omE,dom)
 
-    return(omo,fb(omo))
+    return(omo,fa(omo),fb(omo))
 
 def damfn(p,s):
     P,Q = (0,0)

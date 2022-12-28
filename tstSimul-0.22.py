@@ -240,17 +240,26 @@ w = 1
 #            kt  = ktfn(tc,om,Bx-Bnf)
 #            kto = ktfn(tc,omo,Bxo-Bnf)
 
-#tt = np.arange(0,Tc+1/Fs/2,1/Fs)
+tt = np.arange(0,Tc+1/Fs/2,1/Fs)
 for ir in range(nd):
     for ic in range(nd):
         num = (ir+1)*10+ic+1
-#        ktt,_ = scs.impulse((Ar[ir,ic],Br[ir,ic],Cr[ir,ic],Dr[ir,ic]),T=tt)
+        _,ktt = scs.impulse((Ar[ir,ic],Br[ir,ic],Cr[ir,ic],Dr[ir,ic]),T=tt)
 #        ktt = np.append(np.zeros(len(tt)-1),ktt)
+        ktt = np.append(np.flip(ktt[1:]),ktt)
 #        ktr[ir,ic] = 1/Fs*ktt
         fb = sci.interp1d(om,B[:,ir,ic])
         omn = np.linspace(min(om),max(om),101)
-#        ktr[ir,ic] = w/Fs*ktfn(tc,om,B[:,ir,ic])
-        ktr[ir,ic] = w/Fs*ktf(omn,fb(omn),tc)
+#        ktr[ir,ic] = ktfn(tc,om,B[:,ir,ic])
+#        ktt = w/Fs*ktf(omn,fb(omn),tc)
+        if ir == ic:
+            fig,ax = plt.subplots()
+            ax.plot(tc,ktt,label='SS')
+            ax.plot(tc,ktf(omn,fb(omn),tc),label='DFT')
+            ax.set_ylabel('k%i%i'%(ir+1,ic+1))
+        ktr[ir,ic] = 1/Fs*ktt
+ax.legend()
+plt.show()
 #### Solver
 print('Number of time steps: %i'%ns)
 mot,vel,fr = solve(ns+nc+1,Fs,Tc,fe,M+As,Bs,C,ktr)
