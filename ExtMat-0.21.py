@@ -33,7 +33,7 @@ cDir = 'coeff/'
 
 MIR = False
 
-NS = 17    #### Maximum degree of State Space Model
+NS = 8    #### Maximum degree of State Space Model
 
 MU = 120.0
 VS = 14.0
@@ -98,10 +98,10 @@ M,C = (mm['IM'],cm['SM'])
 lbl = ['xx','yy','zz','rx','ry','rz']
 Pxx =[]
 
-nv = 12,3
+nv,nc = 18,3
 nr = int(nv/nc)
 ind = np.concatenate((np.tile(np.arange(nr),nc),np.repeat(np.arange(nc),nr)),axis=0).reshape(2,-1).T
-
+print(ind)
 Px,Qx = (np.zeros((6,6,NS+1),dtype=complex),np.zeros((6,6,NS+1),dtype=complex))
 x = tuple([6,6,NS,NS])
 

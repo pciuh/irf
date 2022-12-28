@@ -56,14 +56,11 @@ def funmot(x,args):
     return(np.array([dxdt1,dxdt2]))
 
 def radforce(u,kt):
-    n = len(kt)
-    w = scs.tukey(n,1/6)
-    w = np.ones(n)
     return np.convolve(u,w*kt,mode='same')[-1]
 
 def radforce_ss(tc,u,sys):
     _,fr,_ = sys.output(U=u,T=tc)
-    return fr[-1]
+    return fr
 
 def radforce_l(u,Tc,Fs,SS):
     tc = np.arange(0,2*Tc+1/Fs/2,1/Fs)
@@ -87,7 +84,7 @@ def rk4(dt,u,fun,args):
     return dt/6*(k1+2*k2+2*k3+k4)
 
 #def solve(ns,Fs,Tc,few,M,B,C,SS):
-def solve(ns,Fs,Tc,few,M,B,C,ktr):
+def solve(ns,Fs,Tc,few,M,B,C,sys):
 
     fe = few.T
     nd = M.shape[0]
@@ -113,17 +110,20 @@ def solve(ns,Fs,Tc,few,M,B,C,ktr):
         mot[i] = u[0]
         vel[i] = u[1]
 
-        if i>nc+1:
-            nb = nc+1
-        else:
-            nb = 1
-        if i>nc+1:
+ #       if i>nc+1:
+ #           nb = nc+1
+ #       else:
+ #           nb = 1
+ #       if i>nc+1:
             #B = np.zeros_like(M)
-            for ir in range(nd):
-                for ic in range(nd):
-                    v = vel[i-nb:i,ic]
+        ii = 0
+        for ir in range(nd):
+            for ic in range(nd):
+#                    v = vel[i-nb:i,ic]
 #                    fr[i,ir] += radforce(v,Tc,Fs,(Ar[ir,ic],Br[ir,ic],Cr[ir,ic],Dr[ir,ic]))
-                    #fr[i,ir] += radforce(v,ktr[ir,ic])
+                fr[i,ir] += radforce_ss(Fs*i,vel[i,ic],sys[ii])
+                ii+=1
+                #fr[i,ir] += radforce(v,ktr[ir,ic])
     return(mot.T,vel.T,fr.T)
 
 start_time = time.time()
@@ -247,19 +247,18 @@ for ir in range(nd):
         ktt = np.append(np.flip(ktt[1:]),ktt)
 #        ktr[ir,ic] = 1/Fs*ktt
 #        fb = sci.interp1d(om,B[:,ir,ic])
-        omn,_,Bmn = approx(om,A[:,ir,ic],B[:,ir,ic],dom,omE)
-#        ktr[ir,ic] = ktfn(tc,om,B[:,ir,ic])
-        ktt = ktf(omn,Bmn,tc)
-        if ir == ic:
-            fig,ax = plt.subplots()
-            ax.plot(tc,ktt,label='SS')
-            ax.plot(tc,ktf(omn,Bmn,tc),label='DFT')
-            ax.set_ylabel('k%i%i'%(ir+1,ic+1))
-        #ss.append(scs.lti(Ar[ir,ic],Br[ir,ic],Cr[ir,ic],Dr[ir,ic]))
-        ktr[ir,ic] = 1/Fs*ktt
+        #omn,_,Bmn = approx(om,A[:,ir,ic],B[:,ir,ic],dom,omE)
+        #ktt = ktf(omn,Bmn,tc)
+        #if ir == ic:
+            #fig,ax = plt.subplots()
+            #ax.plot(tc,ktt,label='SS')
+            #ax.plot(tc,ktf(omn,Bmn,tc),label='DFT')
+            #ax.set_ylabel('k%i%i'%(ir+1,ic+1))
+        ss.append(scs.lti(Ar[ir,ic],Br[ir,ic],Cr[ir,ic],Dr[ir,ic]))
+        #ktr[ir,ic] = 1/Fs*ktt
 
-ax.legend()
-plt.show()
+#ax.legend()
+#plt.show()
 #### Solver
 print('Number of time steps: %i'%ns)
 #mot,vel,fr = solve(ns+nc+1,Fs,Tc,fe,M+As,Bs,C,ktr)
