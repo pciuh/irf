@@ -240,6 +240,7 @@ w = 1
 #            kt  = ktfn(tc,om,Bx-Bnf)
 #            kto = ktfn(tc,omo,Bxo-Bnf)
 
+omE,dom = 4*np.pi,1e-3
 tt = np.arange(0,Tc+1/Fs/2,1/Fs)
 for ir in range(nd):
     for ic in range(nd):
@@ -248,8 +249,9 @@ for ir in range(nd):
 #        ktt = np.append(np.zeros(len(tt)-1),ktt)
         ktt = np.append(np.flip(ktt[1:]),ktt)
 #        ktr[ir,ic] = 1/Fs*ktt
-        fb = sci.interp1d(om,B[:,ir,ic])
-        omn = np.linspace(min(om),max(om),101)
+#        fb = sci.interp1d(om,B[:,ir,ic])
+        omn = np.arange(0,omE,dom)+dom
+        Bn = approx()
 #        ktr[ir,ic] = ktfn(tc,om,B[:,ir,ic])
 #        ktt = w/Fs*ktf(omn,fb(omn),tc)
         if ir == ic:
