@@ -61,13 +61,9 @@ def radforce(u,kt):
     w = np.ones(n)
     return np.convolve(u,w*kt,mode='same')[-1]
 
-def radforce_ss(u,Tc,Fs,SS):
-    tc = np.arange(0,Tc,1/Fs)
-    _,kt = scs.impulse(SS,T=tc)
-    kt = 1/2*np.append(np.flip(kt[1:]),kt)
-    nt = len(kt)
-    w = scs.tukey(nt,1/3)
-    return np.convolve(u,w*kt/Fs,mode='same')[-1]
+def radforce_ss(tc,u,sys):
+    _,fr,_ = sys.output(U=u,T=tc)
+    return fr[-1]
 
 def radforce_l(u,Tc,Fs,SS):
     tc = np.arange(0,2*Tc+1/Fs/2,1/Fs)
@@ -100,7 +96,7 @@ def solve(ns,Fs,Tc,few,M,B,C,ktr):
     dt = 1/Fs
     fr = np.zeros((ns,nd))
     M1 = np.linalg.inv(M)
-    nc = int(2*Tc*Fs)
+    nc = int(Tc*Fs)
     MET = 'RK2'
 
     for i in range(1,ns):
@@ -127,7 +123,7 @@ def solve(ns,Fs,Tc,few,M,B,C,ktr):
                 for ic in range(nd):
                     v = vel[i-nb:i,ic]
 #                    fr[i,ir] += radforce(v,Tc,Fs,(Ar[ir,ic],Br[ir,ic],Cr[ir,ic],Dr[ir,ic]))
-                    fr[i,ir] += radforce(v,ktr[ir,ic])
+                    #fr[i,ir] += radforce(v,ktr[ir,ic])
     return(mot.T,vel.T,fr.T)
 
 start_time = time.time()
@@ -242,6 +238,7 @@ w = 1
 
 omE,dom = 4*np.pi,1e-3
 tt = np.arange(0,Tc+1/Fs/2,1/Fs)
+ss = []
 for ir in range(nd):
     for ic in range(nd):
         num = (ir+1)*10+ic+1
@@ -250,21 +247,23 @@ for ir in range(nd):
         ktt = np.append(np.flip(ktt[1:]),ktt)
 #        ktr[ir,ic] = 1/Fs*ktt
 #        fb = sci.interp1d(om,B[:,ir,ic])
-        omn = np.arange(0,omE,dom)+dom
-        Bn = approx()
+        omn,_,Bmn = approx(om,A[:,ir,ic],B[:,ir,ic],dom,omE)
 #        ktr[ir,ic] = ktfn(tc,om,B[:,ir,ic])
-#        ktt = w/Fs*ktf(omn,fb(omn),tc)
+        ktt = ktf(omn,Bmn,tc)
         if ir == ic:
             fig,ax = plt.subplots()
             ax.plot(tc,ktt,label='SS')
-            ax.plot(tc,ktf(omn,fb(omn),tc),label='DFT')
+            ax.plot(tc,ktf(omn,Bmn,tc),label='DFT')
             ax.set_ylabel('k%i%i'%(ir+1,ic+1))
+        #ss.append(scs.lti(Ar[ir,ic],Br[ir,ic],Cr[ir,ic],Dr[ir,ic]))
         ktr[ir,ic] = 1/Fs*ktt
+
 ax.legend()
 plt.show()
 #### Solver
 print('Number of time steps: %i'%ns)
-mot,vel,fr = solve(ns+nc+1,Fs,Tc,fe,M+As,Bs,C,ktr)
+#mot,vel,fr = solve(ns+nc+1,Fs,Tc,fe,M+As,Bs,C,ktr)
+mot,vel,fr = solve(ns+nc+1,Fs,Tc,fe,M+As,Bs,C,ss)
 
 print('Runtime: %3.2fs\n'%(float(time.time() - start_time)))
 zr[3:] = np.degrees(zr[3:])
