@@ -1,31 +1,54 @@
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as grs
 
-t = np.arange(0,1,.1)
+def psd(z,Fs):
+    n = int(len(z)/2)
+    Z = np.fft.fft(z)
+    ZA = np.abs(Z[:n])/n
+    ZP = np.angle(Z[:n])
+    f  = np.linspace(0,Fs/2,n)
+    return(f,ZA,ZP)
 
-w = [1,1/4,0]
+iDir = 'results/'
+nam = 'D120V140-NOS'
 
-T = 10
-om = 2*np.pi/T
-y = 1/2*(1-t)**2
+mode = 3
+chn = mode + 1
 
-n = len(w)
+dfsi = pd.read_feather(iDir + 'sim/' + nam + '-simT.ftr')
+dfsy = pd.read_feather(iDir + 'syn/' + nam + '-synT.ftr')
 
-cf = np.convolve(w,y,mode='valid')
-cs = np.convolve(w,y,mode='same')
+nam_si = dfsi.columns
+nam_sy = dfsy.columns
 
-vec = [w,y,cf]
+tsi = dfsi.Time
+tsy = dfsy.Time
 
-fig,ax = plt.subplots(3)
-for i,yp in enumerate(vec):
-    ax[i].plot(yp,label='valid')
-    ax[i].set_xlim(0,len(w)+len(y))
+Fs = 1/(tsi[2]-tsi[1])
+zsi = dfsi[nam_si[chn]]
+zsy = dfsy[nam_sy[chn+6]]
 
+fsi,A_sim,P_sim = psd(zsi,Fs)
+fsy,A_syn,P_syn = psd(zsy,Fs)
 
+fig = plt.figure(figsize=(9,6))
+fig.suptitle(nam_si[chn])
+gs0 = grs.GridSpec(2,3,figure=fig)
+axt = fig.add_subplot(gs0[:-1,:])
+axa = fig.add_subplot(gs0[1,0])
+axp = fig.add_subplot(gs0[1,1])
 
-N = len(cf)-1
-ax[2].scatter(N,cf[N])
-ax[2].scatter(N,cs[N])
-ax[2].plot(cs,label='same')
-ax[2].legend()
+axt.plot(tsy,zsy,label='Synthetisized')
+axt.plot(tsi,zsi,alpha=.75,label='Simulate')
+axt.legend()
+
+axa.plot(fsy,A_syn)
+axa.plot(fsi,A_sim,alpha=.75)
+axa.set_xscale('log')
+
+#axp.plot(fsi,P_sim)
+axp.plot(fsy,P_syn-P_sim)
+axp.set_xscale('log')
 plt.show()
