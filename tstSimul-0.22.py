@@ -58,14 +58,9 @@ def funmot(x,args):
 def radforce(u,kt):
     return np.convolve(u,w*kt,mode='same')[-1]
 
-def radforce_ss(tc,u,sys):
-    _,fr,_ = sys.output(U=u,T=tc)
+def radforce_ss(tc,u,ss):
+    _,fr,_ = scs.lsim(ss,u,tc)
     return fr
-
-def radforce_l(u,Tc,Fs,SS):
-    tc = np.arange(0,2*Tc+1/Fs/2,1/Fs)
-    _,fr,_ = scs.lsim(SS,U=u,T=tc)
-    return fr[-1]
 
 def rk2(dt,u,fun,args):
 #### Ralston's method.
@@ -84,8 +79,9 @@ def rk4(dt,u,fun,args):
     return dt/6*(k1+2*k2+2*k3+k4)
 
 #def solve(ns,Fs,Tc,few,M,B,C,SS):
-def solve(ns,Fs,Tc,few,M,B,C,sys):
+def solve(ns,Fs,Tc,few,M,B,C,SS):
 
+    Ar,Br,Cr,Dr = SS
     fe = few.T
     nd = M.shape[0]
     u = np.zeros((2,nd))
@@ -93,8 +89,8 @@ def solve(ns,Fs,Tc,few,M,B,C,sys):
     dt = 1/Fs
     fr = np.zeros((ns,nd))
     M1 = np.linalg.inv(M)
-    nc = int(Tc*Fs)
-    MET = 'RK2'
+#    nc = int(Tc*Fs)
+    MET = 'RK4'
 
     for i in range(1,ns):
         print('%4.1f'%(100*i/ns)+'%',end='\r')
@@ -116,13 +112,15 @@ def solve(ns,Fs,Tc,few,M,B,C,sys):
  #           nb = 1
  #       if i>nc+1:
             #B = np.zeros_like(M)
-        ii = 0
+#        ii = 0
         for ir in range(nd):
             for ic in range(nd):
 #                    v = vel[i-nb:i,ic]
 #                    fr[i,ir] += radforce(v,Tc,Fs,(Ar[ir,ic],Br[ir,ic],Cr[ir,ic],Dr[ir,ic]))
-                fr[i,ir] += radforce_ss(Fs*i,vel[i,ic],sys[ii])
-                ii+=1
+                v = vel[i,ic]
+                t = i/Fs
+                fr[i,ir] += radforce_ss(t,v,(Ar[ir,ic],Br[ir,ic],Cr[ir,ic],Dr[ir,ic]))
+#                ii+=1
                 #fr[i,ir] += radforce(v,ktr[ir,ic])
     return(mot.T,vel.T,fr.T)
 
@@ -142,7 +140,7 @@ US  = (VS-0)*1852/3600
 PRF = 'OMG'
 PRF = 'NOS'
 #### Wave conditions
-Hs,gam  = 5.0,1.0
+Hs,gam  = 2.5,1.0
 cth = 4.565-0.87*np.log(gam)
 Tp  = cth*np.sqrt(Hs)
 wave = {'HS':Hs,'TP':Tp,'GAM':gam}
@@ -208,7 +206,7 @@ df = pd.DataFrame(Ainf,columns=chn,index=chn)
 
 
 nc = int(2*Tc*Fs) + 1
-
+nc = 1
 ### Exitation force and RAO motions synthesis
 fe,zr = np.zeros((nd,ns+nc)),np.zeros((nd,ns))
 for i in range(nd):
@@ -224,27 +222,16 @@ As,Bs = Ainf,np.zeros((nd,nd))
 tc = np.arange(-Tc,Tc+1/Fs/2,1/Fs)
 nc = len(tc)
 ktr = np.zeros((nd,nd,nc))
-w = scs.tukey(nc,1/2)
-w = 1
-#omE,dom = 10.,1e-2
-#omo = np.arange(0,omE,dom)
-#            Kxo = fka(omo)*np.exp(1j*fkp(omo))
-
-#            Axo = Kxo.imag/omo
-#            Bxo = Kxo.real
-
-#            kt  = ktfn(tc,om,Bx-Bnf)
-#            kto = ktfn(tc,omo,Bxo-Bnf)
 
 omE,dom = 4*np.pi,1e-3
 tt = np.arange(0,Tc+1/Fs/2,1/Fs)
 ss = []
-for ir in range(nd):
-    for ic in range(nd):
-        num = (ir+1)*10+ic+1
-        _,ktt = scs.impulse((Ar[ir,ic],Br[ir,ic],Cr[ir,ic],Dr[ir,ic]),T=tt)
-#        ktt = np.append(np.zeros(len(tt)-1),ktt)
-        ktt = np.append(np.flip(ktt[1:]),ktt)
+#for ir in range(nd):
+    #for ic in range(nd):
+        #num = (ir+1)*10+ic+1
+        #_,ktt = scs.impulse((Ar[ir,ic],Br[ir,ic],Cr[ir,ic],Dr[ir,ic]),T=tt)
+##        ktt = np.append(np.zeros(len(tt)-1),ktt)
+        #ktt = np.append(np.flip(ktt[1:]),ktt)
 #        ktr[ir,ic] = 1/Fs*ktt
 #        fb = sci.interp1d(om,B[:,ir,ic])
         #omn,_,Bmn = approx(om,A[:,ir,ic],B[:,ir,ic],dom,omE)
@@ -254,7 +241,6 @@ for ir in range(nd):
             #ax.plot(tc,ktt,label='SS')
             #ax.plot(tc,ktf(omn,Bmn,tc),label='DFT')
             #ax.set_ylabel('k%i%i'%(ir+1,ic+1))
-        ss.append(scs.lti(Ar[ir,ic],Br[ir,ic],Cr[ir,ic],Dr[ir,ic]))
         #ktr[ir,ic] = 1/Fs*ktt
 
 #ax.legend()
@@ -262,7 +248,7 @@ for ir in range(nd):
 #### Solver
 print('Number of time steps: %i'%ns)
 #mot,vel,fr = solve(ns+nc+1,Fs,Tc,fe,M+As,Bs,C,ktr)
-mot,vel,fr = solve(ns+nc+1,Fs,Tc,fe,M+As,Bs,C,ss)
+mot,vel,fr = solve(ns+1,Fs,Tc,fe,M+As,Bs,C,(Ar,Br,Cr,Dr))
 
 print('Runtime: %3.2fs\n'%(float(time.time() - start_time)))
 zr[3:] = np.degrees(zr[3:])

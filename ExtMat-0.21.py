@@ -92,7 +92,6 @@ t  = np.arange(0,Tc,1/Fs)
 w = scs.tukey(len(t),1/6)
 w = np.ones(len(t))
 
-
 M,C = (mm['IM'],cm['SM'])
 
 lbl = ['xx','yy','zz','rx','ry','rz']
@@ -101,7 +100,6 @@ Pxx =[]
 nv,nc = 18,3
 nr = int(nv/nc)
 ind = np.concatenate((np.tile(np.arange(nr),nc),np.repeat(np.arange(nc),nr)),axis=0).reshape(2,-1).T
-print(ind)
 Px,Qx = (np.zeros((6,6,NS+1),dtype=complex),np.zeros((6,6,NS+1),dtype=complex))
 x = tuple([6,6,NS,NS])
 
@@ -132,9 +130,9 @@ fig,ax = plt.subplots(nr,nc,figsize=(10,10))
 fif,af = plt.subplots(nr,nc,figsize=(10,10))
 fib,ab = plt.subplots(nr,nc,figsize=(10,10))
 
-fig.suptitle('Impulse Response Function Matrix')
-fif.suptitle('Added Mass Matrix')
-fib.suptitle('Damping Matrix')
+fig.suptitle('Impulse Response Function Matrix',va='bottom')
+fif.suptitle('Added Mass Matrix',va='bottom')
+fib.suptitle('Damping Matrix',va='bottom')
 aPer,bPer = .1,0.4
 for ir in range(6):
     for ic in range(6):
@@ -149,7 +147,7 @@ for ir in range(6):
             #### Estimation of infinit added mass
             Ainfty,Aint = adminf(om,Ax,Bx)
 
-            print('%i%i:'%(ir+1,ic+1))
+            #print('%i%i:'%(ir+1,ic+1))
 
             omn,An,Bn = approx(om,Ax,Bx,dom,omE)
 
@@ -171,9 +169,10 @@ for ir in range(6):
             Px[ir,ic,:enp],Qx[ir,ic,:enq]=TF
 
             idx = tuple(ind[i])
-            ax[idx].plot(t,ktn,label='AQWA+extrap',alpha=.5,lw=2.5)
-            ax[idx].plot(t,ktd,lw=1.25)
+            ax[idx].plot(t,ktd,label='AQWA+extrap',alpha=.5,lw=2.5)
+#            ax[idx].plot(t,ktd,lw=1.25,'DFT')
             ax[idx].plot(th,kth,'--r',label='ERA',lw=1.)
+            ax[idx].hlines(0,0,Tc,ls='--',color='#000000bb',lw=.5)
             ax[idx].set_ylabel(r'$k_{%i%i}$'%(ir+1,ic+1))
             ax[idx].ticklabel_format(axis='y',useMathText=True,scilimits=(0,0))
             fig.tight_layout(w_pad=.5,h_pad=.5)

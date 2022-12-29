@@ -86,7 +86,7 @@ Ts,Tc,Fs = (900,30,10)
 SEED = 291176
 #SEED = 200278
 #### Wave conditions
-Hs,gam  = 5.0,1.0
+Hs,gam  = 2.5,1.0
 cth = 4.565-0.87*np.log(gam)
 Tp  = cth*np.sqrt(Hs)
 wave = {'HS':Hs,'TP':Tp,'GAM':gam}

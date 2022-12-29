@@ -59,13 +59,13 @@ def approx(om,A,B,dom,omE):
     res = sco.least_squares(res_a,p0,args=(x,ya),method=METHOD,loss=LOSS)
     pa = res['x']
     pa[-1] = pa[-1]*norma
-    print('A.param:',pa)
+    #print('A.param:',pa)
     A = A*norma
     Ae = afun(pa,ome)
 
     res = sco.least_squares(res_b,p0,args=(x,yb),method=METHOD,loss=LOSS)
     pb = res['x']*normb
-    print('B.param:',pb)
+    #print('B.param:',pb)
     B = B*normb
     Be = bfun(pb,ome)
 
