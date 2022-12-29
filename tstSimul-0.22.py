@@ -148,8 +148,8 @@ wave = {'HS':Hs,'TP':Tp,'GAM':gam}
 #### Simulation parameters
 Ts,Tc,Fs = (900.,30.,10.)
 SEED = 291176
-#SEED = 5112007
-#SEED = 200278
+SEED = 5112007
+SEED = 200278
 
 print('Simulation Conditions:')
 print('VS(knots) %8.1f\n'%VS)
@@ -255,7 +255,7 @@ zr[3:] = np.degrees(zr[3:])
 mot[3:] = np.degrees(mot[3:])
 
 fig = plocmp(ts,zr,mot[:,-ns:],'SiMULATiON',chn,[2,3,4])
-fig.savefig(pDir + 'sim/' + nam + '-sim3D.png',dpi=300)
+fig.savefig(pDir + 'sim/' + nam + '-sim3D-%.6d.png'%SEED,dpi=300)
 
 
 print('%6s%8s%8s'%('','Simul','Synth'))
@@ -269,5 +269,5 @@ mot,vel,fe,fr = mot.T[-ns:],vel.T[-ns:],fe.T[-ns:],fr.T[-ns:]
 key = ['Time','Wave']+[x+'(mot)' for x in chn]+[x+'(vel)' for x in chn]+[x+'(fkd)' for x in chn]+[x+'(rad)' for x in chn]
 vec = np.concatenate((ts.reshape(-1,1),zw.reshape(-1,1),mot,vel,fe,fr),axis=1)
 df = pd.DataFrame(vec,columns=key)
-df.to_feather(rDir + 'sim/'+nam+'-simT.ftr')
+df.to_feather(rDir + 'sim/'+nam+'-simT-S%.6d.ftr'%SEED)
 df.to_csv(rDir + 'sim/'+nam+'-simT.csv')
