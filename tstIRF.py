@@ -76,8 +76,8 @@ rDir = 'results/'
 chn = ['X','Y','Z','RX','RY','RZ']
 
 #### Case conditions
-MU  = 120.0
-VS  = 14.0
+MU  = 60.0
+VS  = 4.0
 US  = (VS-0)*1852/3600
 PRF = 'OMG'
 PRF = 'NOS'
@@ -86,7 +86,7 @@ Ts,Tc,Fs = (900,30,10)
 SEED = 291176
 #SEED = 200278
 #### Wave conditions
-Hs,gam  = 2.5,1.0
+Hs,gam  = 5.0,1.0
 cth = 4.565-0.87*np.log(gam)
 Tp  = cth*np.sqrt(Hs)
 wave = {'HS':Hs,'TP':Tp,'GAM':gam}

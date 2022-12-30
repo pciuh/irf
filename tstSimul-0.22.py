@@ -134,13 +134,13 @@ cDir = 'coeff/'
 rDir = 'results/'
 
 #### Case conditions
-MU  = 120.0
+MU  = 60.0
 VS  = 14.0
 US  = (VS-0)*1852/3600
 PRF = 'OMG'
 PRF = 'NOS'
 #### Wave conditions
-Hs,gam  = 2.5,1.0
+Hs,gam  = 5.0,1.0
 cth = 4.565-0.87*np.log(gam)
 Tp  = cth*np.sqrt(Hs)
 wave = {'HS':Hs,'TP':Tp,'GAM':gam}
