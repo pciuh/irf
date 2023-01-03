@@ -28,7 +28,7 @@ def moments(x,y,N):
     return(m)
     
 def countomega(iFil):
-    
+
     bStr = 'NO.  FREQUENCY FREQUENCY'
     eStr = '***** HYDRODYNAMIC DATABASE NOW USING ENCOUNTER*****'
 
@@ -38,11 +38,11 @@ def countomega(iFil):
     for line in Lin:
         if line.strip()[0:27]==bStr:
             sb=c
-            
+
         if line.strip()[0:54]==eStr:
             se=c
-        c=c+1    
-    
+        c=c+1
+
     return(se-sb-7)
 
 
@@ -66,9 +66,9 @@ def readomega(iFil,nom):
     for i in range(nom):
         om[i]  = float(Lin[sb+i].strip()[5:15])
         ome[i] = float(Lin[sb+i].strip()[15:25])
-    
+
     return(om,ome)
-    
+
 
 def readcoeff(iFil,nom):
 ############################   Reads Coefficients from AQWA *.LIS files
@@ -160,7 +160,7 @@ def readrao(iFil,rTYP,nom):
         rSTR='FROUDE KRYLOV + DIFFRACTION FORCES-VARIATION WITH WAVE PERIOD/FREQUENCY'
     else:
         print('Wrong Switch!')
-        
+
     c=0
     ib=0
     for line in Lin:
@@ -174,7 +174,7 @@ def readrao(iFil,rTYP,nom):
         if line.strip()==STR:
             fb=c+3
         c=c+1
-    
+
     ie=ib+nom
     fe=fb+nom
     ome=np.zeros(nom)
@@ -183,22 +183,22 @@ def readrao(iFil,rTYP,nom):
 
     pref=['XX','YY','ZZ','RX','RY','RZ']
     suff=['A','P']
-    
+
     keys=[]
     for pr in pref:
         for sf in suff:
             keys=np.append(keys,pr+sf)
-        
+
     dcr={}
     c=0
     for line in Lin[fb:fe]:
         om[c]=line[16:24]
         c=c+1
-    c=0   
+    c=0
     for line in Lin[ib:ie]:
         ome[c]=line[8:13]
         rao[c]=np.array([float(x) for x in line[24:130].split()])
-        
+
         c=c+1
     dcr=dict(zip(keys,rao.T))
     df=pd.DataFrame(dcr)
@@ -206,6 +206,7 @@ def readrao(iFil,rTYP,nom):
     df.insert(loc=0,column='OM',value=om)
 
     return (df)
+
 def secord(iFil,nom):
 
     fil1 = open(iFil,'r')
@@ -233,7 +234,7 @@ def secord(iFil,nom):
 
 def calc_faw(iFil,IND):
 ############################   Calculates mean second order forces
-    
+
     file1 = open(iFil, 'r') 
     Lines = file1.readlines() 
     cs=((8,80))
@@ -260,7 +261,6 @@ def calc_faw(iFil,IND):
         count=count+1
 
     Pd=qtf[0:-3:4]
-#    print(Pd)
     Qd=qtf[1:-2:4]
     Ps=qtf[3:-1:4]
     Qs=qtf[4::4]
@@ -275,20 +275,19 @@ def calc_faw(iFil,IND):
         Qdm[i]=Qd[ind]
         Psm[i]=Ps[ind]
         Qsm[i]=Qs[ind]
-    
-    
+
     Fdm=np.sqrt(Pdm**2+Qdm**2)*np.sign(Pdm)
     Fdm=Pdm
     PHd=np.arctan2(Qdm,Pdm)
 
     Fsm=np.sqrt(Psm**2+Qsm**2)*np.sign(Psm)
     PHs=np.arctan2(Qsm,Psm)
-    
+
     Fdms=Pdm*np.cos(PHd)+Qdm*np.sin(PHd)
     Fsms=Psm*np.cos(PHs)+Qsm*np.sin(PHs)
 
     return(om,Fdm,Fsm,PHd,PHs)
-    
+
 def calc_rao(iFil,nom,nC):
 ############################   Calculates RAO from input coefficients & forces
 
