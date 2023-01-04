@@ -25,6 +25,73 @@ import time
 
 from module_aqwa import *
 
+def synth(Ts,Fs,rao,wave,SEED):
+
+    if SEED:
+        rnds = np.random.seed(SEED)
+
+    dom = 2*np.pi/Ts
+    om,P,Q = rao
+
+    omc,omr = np.meshgrid(om,om)
+    omd,oms = omr-omc,omr+omc
+
+    Pd,Ps = P
+    Qd,Qs = Q
+
+    phd = np.arctan2(Qd,Pd)
+    phs = np.arctan2(Qs,Ps)
+
+    oMin,oMax = np.ceil(min(om)/dom)*dom,np.floor(max(om)/dom)*dom
+
+    print(Ts,Fs)
+    ts = np.arange(0,Ts,1/Fs)
+
+    omi = np.arange(oMin,oMax,dom)
+    omci,omri = np.meshgrid(omi,omi)
+    nomi = len(omi)
+
+    fpd = sci.RegularGridInterpolator((om,om),Pd)
+    fps = sci.RegularGridInterpolator((om,om),Ps)
+
+    fqd = sci.RegularGridInterpolator((om,om),Qd)
+    fqs = sci.RegularGridInterpolator((om,om),Qs)
+
+    fphd = sci.RegularGridInterpolator((om,om),Phd)
+    fphs = sci.RegularGridInterpolator((om,om),Phs)
+
+    Pdi = fpd((omri,omci))
+    Psi = fps((omri,omci))
+
+    Qdi = fqd((omri,omci))
+    Qsi = fqs((omri,omci))
+
+    phi = (1-2*np.random.random(nomi))*np.pi
+
+    phdi = fphd((omri,omci))
+    phsi = fphs((omri,omci))
+
+    fi = omi/2/np.pi
+    s,f = Jonswap(wave,fi)
+
+    sc,sr = np.meshgrid(s,s)
+
+    wa   = np.sqrt(2*s/Ts)
+    wac  = np.sqrt(2*sc/Ts)
+    war  = np.sqrt(2*sr/Ts)
+
+    yp,yq = 0,0
+
+    sMN = 1
+
+    for ir in range(sc.shape[0]):
+        for ic in range(sc.shape[1]):
+            yp += wa[ir]*wa[ic]*(Pdi[ir,ic]*np.cos(-(omi[ir]-omi[ic])*ts+phdi[ir,ic]+phi[ir]-phi[ic])+
+                                 sMN*Psi[ir,ic]*np.cos(-(omi[ir]+omi[ic])*ts+phsi[ir,ic]+phi[ir]-phi[ic]))
+            yq += wa[ir]*wa[ic]*(Qdi[ir,ic]*np.sin(-(omi[ir]-omi[ic])*ts+phdi[ir,ic]+phi[ir]-phi[ic])+
+                                 sMN*Qsi[ir,ic]*np.sin(-(omi[ir]+omi[ic])*ts+phsi[ir,ic]+phi[ir]-phi[ic]))
+    return (yp+yq,ts)
+
 start_time = time.time()
 
 G = 9.80665
@@ -62,7 +129,7 @@ else:
     print('\n File %s loaded!'%fnam)
 
 ################### READ QTF
-IND = 4
+IND = 1
 
 file1 = open(fnam, 'r') 
 Lines = file1.readlines() 
@@ -86,7 +153,8 @@ om=np.array([])
 for line in Lines[2:count]:
     om=np.append(om,np.array(line[cs[0]:cs[1]].split(),dtype=np.float64))
 
-print(om)
+
+
 i = 0
 for line in Lines[count:]:
     sline=np.array(line[cs[0]:cs[1]].split(),dtype=np.float64)
@@ -100,16 +168,33 @@ Qd=qtf[1:-3:4]
 Ps=qtf[3:-2:4]
 Qs=qtf[4::4]
 
+Pd = Pd.reshape(nom,-1)
+Qd = Qd.reshape(nom,-1)
+Ps = Ps.reshape(nom,-1)
+Qs = Qs.reshape(nom,-1)
 
-Fd = np.sqrt(Pd**2+Qd**2)
-Fs = np.sqrt(Ps**2+Qs**2)
+F2d = np.sqrt(Pd**2+Qd**2)
+F2s = np.sqrt(Ps**2+Qs**2)
 Phd = np.arctan2(Qd,Pd)
 Phs = np.arctan2(Qs,Ps)
 
-Fd = Fd.reshape(nom,-1)
-Fs = Fs.reshape(nom,-1)
-Phd = Phd.reshape(nom,-1)
-Phs = Phs.reshape(nom,-1)
+qtf = (om,(Pd,Ps),(Qd,Qs))
+
+y,ts = synth(Ts,Fs,qtf,wave,SEED)
+
+print('Runtime: %3.2fs\n'%(float(time.time() - start_time)))
+
+fig,ax = plt.subplots()
+ax.set_title('$F^{(2)}_{%i}$'%(IND+1))
+ax.plot(ts,y)
+plt.show()
+
+stop
+omc,omr = np.meshgrid(om,om)
+#Fd = Fd.reshape(nom,-1)
+#Fs = Fs.reshape(nom,-1)
+#Phd = Phd.reshape(nom,-1)
+#Phs = Phs.reshape(nom,-1)
 
 Ts,fs = (30,10)
 t = np.arange(0,Ts,1/fs)
@@ -118,10 +203,11 @@ F = np.zeros((nom,nom,ns))
 
 for i,w1 in enumerate(om):
     for ii,w2 in enumerate(om):
-        F[i,ii] = Fd[i,ii]*np.cos((w2-w1)*t+Phd[i,ii])+Fs[i,ii]*np.cos((w1+w2)*t+Phs[i,ii])
+        F[i,ii] = F2d[i,ii]*np.cos((w2-w1)*t+Phd[i,ii])+F2s[i,ii]*np.cos((w1+w2)*t+Phs[i,ii])
 
 
-omr,omc = np.meshgrid(om,om)
+rao = (om,(Pd,Ps),(Qd,Qs))
+
 
 fig,ax = plt.subplots()
 fig.suptitle('$F_{%i}$'%(IND+1))
