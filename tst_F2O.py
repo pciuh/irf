@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -23,9 +22,10 @@ import matplotlib.animation as ani
 
 import time
 
+from module_simul import synth
 from module_aqwa import *
 
-def synth(Ts,Fs,rao,wave,SEED):
+def synth2(Ts,Fs,rao,wave,SEED):
 
     if SEED:
         rnds = np.random.seed(SEED)
@@ -87,9 +87,9 @@ def synth(Ts,Fs,rao,wave,SEED):
     for ir in range(sc.shape[0]):
         for ic in range(sc.shape[1]):
             yp += wa[ir]*wa[ic]*(Pdi[ir,ic]*np.cos(-(omi[ir]-omi[ic])*ts+phdi[ir,ic]+phi[ir]-phi[ic])+
-                                 sMN*Psi[ir,ic]*np.cos(-(omi[ir]+omi[ic])*ts+phsi[ir,ic]+phi[ir]-phi[ic]))
+                                 sMN*Psi[ir,ic]*np.cos(-(omi[ir]+omi[ic])*ts+phsi[ir,ic]+phi[ir]+phi[ic]))
             yq += wa[ir]*wa[ic]*(Qdi[ir,ic]*np.sin(-(omi[ir]-omi[ic])*ts+phdi[ir,ic]+phi[ir]-phi[ic])+
-                                 sMN*Qsi[ir,ic]*np.sin(-(omi[ir]+omi[ic])*ts+phsi[ir,ic]+phi[ir]-phi[ic]))
+                                 sMN*Qsi[ir,ic]*np.sin(-(omi[ir]+omi[ic])*ts+phsi[ir,ic]+phi[ir]+phi[ic]))
     return (yp+yq,ts)
 
 start_time = time.time()
@@ -105,12 +105,12 @@ chn = ['X','Y','Z','RX','RY','RZ']
 
 #### Case conditions
 MU  = 60.0
-VS  = 10.0
+VS  = 14.0
 US  = (VS-0)*1852/3600
 PRF = 'OMG'
 PRF = 'NOS'
 #### Time conditions
-Ts,Tc,Fs = (900,30,10)
+Ts,Fs = (600,10)
 SEED = 291176
 #SEED = 200278
 #### Wave conditions
@@ -122,6 +122,13 @@ wave = {'HS':Hs,'TP':Tp,'GAM':gam}
 nam = 'D%.3dV%.3d-'%(MU,10*VS)+PRF
 fnam = iDir + nam + '.QTF'
 
+Few = np.load(cDir+nam+'-Fw.npy')
+
+
+om = np.real(Few[-1])
+fkda = np.abs(Few[:-1])
+fkdp = np.angle(Few[:-1])
+
 if os.path.exists(fnam)==False:
     print('\nFile %s does not exist!'%fnam)
     sys.exit()
@@ -129,10 +136,10 @@ else:
     print('\n File %s loaded!'%fnam)
 
 ################### READ QTF
-IND = 1
+IND = 2
 
-file1 = open(fnam, 'r') 
-Lines = file1.readlines() 
+file1 = open(fnam, 'r')
+Lines = file1.readlines()
 file1.close()
 
 cs=((8,80))
@@ -140,20 +147,18 @@ cs=((8,80))
 line=str(Lines[1:2])
 nf=int(line[6:8])
 
-
 nl=np.size(Lines)
 nc=5
 nt=int((nl-nc)/4)
 
 count=int(np.ceil(nf/6))+2
 
+fe,_ = synth(Ts,Fs,(om,fkda[IND],fkdp[IND]),wave,SEED)
 
 qtf=np.zeros((nl-4))
 om=np.array([])
 for line in Lines[2:count]:
     om=np.append(om,np.array(line[cs[0]:cs[1]].split(),dtype=np.float64))
-
-
 
 i = 0
 for line in Lines[count:]:
@@ -180,16 +185,21 @@ Phs = np.arctan2(Qs,Ps)
 
 qtf = (om,(Pd,Ps),(Qd,Qs))
 
-y,ts = synth(Ts,Fs,qtf,wave,SEED)
+y,ts = synth2(Ts,Fs,qtf,wave,SEED)
+ym = np.mean(y)
 
 print('Runtime: %3.2fs\n'%(float(time.time() - start_time)))
 
-fig,ax = plt.subplots()
+fig,ax = plt.subplots(figsize=(8,3))
 ax.set_title('$F^{(2)}_{%i}$'%(IND+1))
-ax.plot(ts,y)
+#ax.plot(ts,y)
+ax.plot(ts,fe+y)
+ax.hlines(ym,0,Ts,ls='--',lw=2,color='tab:red')
+ax.annotate('%.2e'%ym,(Ts,ym),ha='left',va='center')
+ax.set_xlim(right=1.25*Ts)
 plt.show()
 
-stop
+#stop
 omc,omr = np.meshgrid(om,om)
 #Fd = Fd.reshape(nom,-1)
 #Fs = Fs.reshape(nom,-1)
@@ -205,9 +215,7 @@ for i,w1 in enumerate(om):
     for ii,w2 in enumerate(om):
         F[i,ii] = F2d[i,ii]*np.cos((w2-w1)*t+Phd[i,ii])+F2s[i,ii]*np.cos((w1+w2)*t+Phs[i,ii])
 
-
 rao = (om,(Pd,Ps),(Qd,Qs))
-
 
 fig,ax = plt.subplots()
 fig.suptitle('$F_{%i}$'%(IND+1))

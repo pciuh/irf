@@ -135,7 +135,7 @@ rDir = 'results/'
 
 #### Case conditions
 MU  = 60.0
-VS  = 14.0
+VS  = 4.0
 US  = (VS-0)*1852/3600
 PRF = 'OMG'
 PRF = 'NOS'
@@ -202,8 +202,6 @@ zwp  = np.angle(RAO[:-1])
 chn = ['X','Y','Z','RX','RY','RZ']
 
 df = pd.DataFrame(Ainf,columns=chn,index=chn)
-#print(df)
-
 
 nc = int(2*Tc*Fs) + 1
 nc = 1
