@@ -25,6 +25,8 @@ import time
 from module_simul import synth
 from module_aqwa import *
 
+print('Current Version:-',sys.version)
+
 def synth2(Ts,Fs,rao,wave,SEED):
 
     if SEED:
@@ -44,12 +46,13 @@ def synth2(Ts,Fs,rao,wave,SEED):
 
     oMin,oMax = np.ceil(min(om)/dom)*dom,np.floor(max(om)/dom)*dom
 
-    print(Ts,Fs)
     ts = np.arange(0,Ts,1/Fs)
+    ns = len(ts)
 
     omi = np.arange(oMin,oMax,dom)
     omci,omri = np.meshgrid(omi,omi)
     nomi = len(omi)
+    print(nomi)
 
     fpd = sci.RegularGridInterpolator((om,om),Pd)
     fps = sci.RegularGridInterpolator((om,om),Ps)
@@ -67,6 +70,11 @@ def synth2(Ts,Fs,rao,wave,SEED):
     Qsi = fqs((omri,omci))
 
     phi = (1-2*np.random.random(nomi))*np.pi
+    phci,phri = np.meshgrid(phi,phi)
+
+    omdi = omri-omci
+    phdri = phri-phci
+
 
     phdi = fphd((omri,omci))
     phsi = fphs((omri,omci))
@@ -80,17 +88,30 @@ def synth2(Ts,Fs,rao,wave,SEED):
     wac  = np.sqrt(2*sc/Ts)
     war  = np.sqrt(2*sr/Ts)
 
+    waa = war*wac
+
     yp,yq = 0,0
+    ypp,yqq = 0,0
 
-    sMN = 1
-
+    sMN = 0
+    ts = ts.reshape((ns,1))
+    imat = np.ones((ns,1))
     for ir in range(sc.shape[0]):
-        for ic in range(sc.shape[1]):
-            yp += wa[ir]*wa[ic]*(Pdi[ir,ic]*np.cos(-(omi[ir]-omi[ic])*ts+phdi[ir,ic]+phi[ir]-phi[ic])+
-                                 sMN*Psi[ir,ic]*np.cos(-(omi[ir]+omi[ic])*ts+phsi[ir,ic]+phi[ir]+phi[ic]))
-            yq += wa[ir]*wa[ic]*(Qdi[ir,ic]*np.sin(-(omi[ir]-omi[ic])*ts+phdi[ir,ic]+phi[ir]-phi[ic])+
-                                 sMN*Qsi[ir,ic]*np.sin(-(omi[ir]+omi[ic])*ts+phsi[ir,ic]+phi[ir]+phi[ic]))
-    return (yp+yq,ts)
+        ct = waa[ir]*imat*np.cos(omdi[ir]*ts+phdi[ir]*imat+phdri[ir]*imat)
+        st = waa[ir]*imat*np.sin(omdi[ir]*ts+phdi[ir]*imat+phdri[ir]*imat)
+        yp += Pdi[ir]@ct.T
+        yq += Qdi[ir]@st.T
+
+    y = np.flip(yp+yq)
+#    print(y.shape)
+#    stop
+#    for ir in range(sc.shape[0]):
+#        for ic in range(sc.shape[1]):
+#            ypp += wa[ir]*wa[ic]*(Pdi[ir,ic]*np.cos(-(omi[ir]-omi[ic])*ts+phdi[ir,ic]+phi[ir]-phi[ic])+
+#                                 sMN*Psi[ir,ic]*np.cos(-(omi[ir]+omi[ic])*ts+phsi[ir,ic]+phi[ir]+phi[ic]))
+#            yqq += wa[ir]*wa[ic]*(Qdi[ir,ic]*np.sin(-(omi[ir]-omi[ic])*ts+phdi[ir,ic]+phi[ir]-phi[ic])+
+#                                 sMN*Qsi[ir,ic]*np.sin(-(omi[ir]+omi[ic])*ts+phsi[ir,ic]+phi[ir]+phi[ic]))
+    return (y,ts)
 
 start_time = time.time()
 
@@ -110,7 +131,7 @@ US  = (VS-0)*1852/3600
 PRF = 'OMG'
 PRF = 'NOS'
 #### Time conditions
-Ts,Fs = (600,10)
+Ts,Fs = (900,10)
 SEED = 291176
 #SEED = 200278
 #### Wave conditions
@@ -136,7 +157,7 @@ else:
     print('\n File %s loaded!'%fnam)
 
 ################### READ QTF
-IND = 2
+IND = 0
 
 file1 = open(fnam, 'r')
 Lines = file1.readlines()
@@ -193,7 +214,8 @@ print('Runtime: %3.2fs\n'%(float(time.time() - start_time)))
 fig,ax = plt.subplots(figsize=(8,3))
 ax.set_title('$F^{(2)}_{%i}$'%(IND+1))
 #ax.plot(ts,y)
-ax.plot(ts,fe+y)
+ax.plot(ts,y,label='matrix')
+ax.legend()
 ax.hlines(ym,0,Ts,ls='--',lw=2,color='tab:red')
 ax.annotate('%.2e'%ym,(Ts,ym),ha='left',va='center')
 ax.set_xlim(right=1.25*Ts)
