@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 
 import time
 
-from module_aqwa import countomega, readomega, readrao, readcoeff
+from module_aqwa import countomega, readomega, readrao, readcoeff, readqtf
 from module_simul import *
 
 def plocmp(om,rao,raoi,TIT,chn,vdeg):
@@ -206,11 +206,14 @@ df = pd.DataFrame(Ainf,columns=chn,index=chn)
 nc = int(2*Tc*Fs) + 1
 nc = 1
 ### Exitation force and RAO motions synthesis
-fe,zr = np.zeros((nd,ns+nc)),np.zeros((nd,ns))
+fe,fe2,zr = np.zeros((nd,ns+nc)),np.zeros((nd,ns+nc)),np.zeros((nd,ns))
 for i in range(nd):
     fe[i,nc:],ts = synth(Ts,Fs,(om,fkda[i],fkdp[i]),wave,SEED)
+    qtf = readqtf(iDir + nam + '.QTF',i)
+    fe2[i,nc:],_ = synth2(Ts,Fs,qtf,wave,SEED)
     zr[i],_      = synth(Ts,Fs,(om,zwa[i],zwp[i]),wave,SEED)
 
+ft = fe+fe2
 zw,_ = synth(Ts,Fs,(om,np.ones_like(om),np.zeros_like(om)),wave,SEED)
 
 print('Hs(m)%8.1f:'%(4*np.std(zw)))
@@ -246,7 +249,7 @@ ss = []
 #### Solver
 print('Number of time steps: %i'%ns)
 #mot,vel,fr = solve(ns+nc+1,Fs,Tc,fe,M+As,Bs,C,ktr)
-mot,vel,fr = solve(ns+1,Fs,Tc,fe,M+As,Bs,C,(Ar,Br,Cr,Dr))
+mot,vel,fr = solve(ns+1,Fs,Tc,ft,M+As,Bs,C,(Ar,Br,Cr,Dr))
 
 print('Runtime: %3.2fs\n'%(float(time.time() - start_time)))
 zr[3:] = np.degrees(zr[3:])

@@ -255,6 +255,86 @@ def synth(Ts,Fs,rao,wave,SEED):
 
     return (y,ts)
 
+def synth2(Ts,Fs,rao,wave,SEED):
+
+    if SEED:
+        rnds = np.random.seed(SEED)
+
+    dom = 2*np.pi/Ts
+    om,P,Q = rao
+
+    omc,omr = np.meshgrid(om,om)
+    omd,oms = omr-omc,omr+omc
+
+    Pd,Ps = P
+    Qd,Qs = Q
+
+    phd = np.arctan2(Qd,Pd)
+    phs = np.arctan2(Qs,Ps)
+
+    oMin,oMax = np.ceil(min(om)/dom)*dom,np.floor(max(om)/dom)*dom
+
+    ts = np.arange(0,Ts,1/Fs)
+    ns = len(ts)
+
+    omi = np.arange(oMin,oMax,dom)
+    omci,omri = np.meshgrid(omi,omi)
+    nomi = len(omi)
+
+    fpd = sci.RegularGridInterpolator((om,om),Pd)
+    fps = sci.RegularGridInterpolator((om,om),Ps)
+
+    fqd = sci.RegularGridInterpolator((om,om),Qd)
+    fqs = sci.RegularGridInterpolator((om,om),Qs)
+
+    fphd = sci.RegularGridInterpolator((om,om),phd)
+    fphs = sci.RegularGridInterpolator((om,om),phs)
+
+    Pdi = fpd((omri,omci))
+    Psi = fps((omri,omci))
+
+    Qdi = fqd((omri,omci))
+    Qsi = fqs((omri,omci))
+
+    phi = (1-2*np.random.random(nomi))*np.pi
+    phci,phri = np.meshgrid(phi,phi)
+
+    omdi = omri-omci
+    omsi = omri+omci
+
+    phdri = phri-phci
+    phsri = phri+phci
+
+    phdi = fphd((omri,omci))
+    phsi = fphs((omri,omci))
+
+    fi = omi/2/np.pi
+    s,f = Jonswap(wave,fi)
+
+    sc,sr = np.meshgrid(s,s)
+
+    wa   = np.sqrt(2*s/Ts)
+    wac  = np.sqrt(2*sc/Ts)
+    war  = np.sqrt(2*sr/Ts)
+
+    waa = war*wac
+
+    yp,yq = 0,0
+
+    ts = ts.reshape((ns,1))
+    imat = np.ones((ns,1))
+    for ir in range(sc.shape[0]):
+        ctd  = waa[ir]*imat*np.cos(omdi[ir]*ts+phdi[ir]*imat+phdri[ir]*imat)
+        cts = waa[ir]*imat*np.cos(omsi[ir]*ts+phsi[ir]*imat+phsri[ir]*imat)
+        std = waa[ir]*imat*np.sin(omdi[ir]*ts+phdi[ir]*imat+phdri[ir]*imat)
+        sts = waa[ir]*imat*np.sin(omsi[ir]*ts+phsi[ir]*imat+phsri[ir]*imat)
+
+        yp += Pdi[ir]@ctd.T + Psi[ir]@cts.T
+        yq += Qdi[ir]@std.T + Qsi[ir]@sts.T
+
+    y = np.flip(yp+yq)
+    return (y,ts)
+
 def state_space(om,A,B,NS,idx,PLT):
 
     pDir = 'png/'

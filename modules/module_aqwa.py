@@ -5,6 +5,8 @@ Created on Mon Mar  9 13:19:21 2020
 
 @author: pciuh
 """
+import os
+import sys
 
 import numpy as np
 import pandas as pd
@@ -206,6 +208,53 @@ def readrao(iFil,rTYP,nom):
     df.insert(loc=0,column='OM',value=om)
 
     return (df)
+
+def readqtf(fnam,IND):
+
+
+    if os.path.exists(fnam)==False:
+        print('\nFile %s does not exist!'%fnam)
+        sys.exit()
+
+    file = open(fnam, 'r')
+    Lines = file.readlines()
+    file.close()
+
+    cs=((8,80))
+
+    line=str(Lines[1:2])
+    nf=int(line[6:8])
+
+    nl=np.size(Lines)
+    nc=5
+    nt=int((nl-nc)/4)
+
+    count=int(np.ceil(nf/6))+2
+
+    qtf=np.zeros((nl-4))
+    om=np.array([])
+    for line in Lines[2:count]:
+        om=np.append(om,np.array(line[cs[0]:cs[1]].split(),dtype=np.float64))
+
+    i = 0
+    for line in Lines[count:]:
+        sline=np.array(line[cs[0]:cs[1]].split(),dtype=np.float64)
+        qtf[i] = sline[IND]
+        i+=1
+
+    nom = len(om)
+
+    Pd=qtf[0:-4:4]
+    Qd=qtf[1:-3:4]
+    Ps=qtf[3:-2:4]
+    Qs=qtf[4::4]
+
+    Pd = Pd.reshape(nom,-1)
+    Qd = Qd.reshape(nom,-1)
+    Ps = Ps.reshape(nom,-1)
+    Qs = Qs.reshape(nom,-1)
+
+    return (om,(Pd,Ps),(Qd,Qs))
 
 def secord(iFil,nom):
 

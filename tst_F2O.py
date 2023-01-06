@@ -22,96 +22,10 @@ import matplotlib.animation as ani
 
 import time
 
-from module_simul import synth
-from module_aqwa import *
+from module_simul import synth,synth2
+from module_aqwa import read_qtf
 
 print('Current Version:-',sys.version)
-
-def synth2(Ts,Fs,rao,wave,SEED):
-
-    if SEED:
-        rnds = np.random.seed(SEED)
-
-    dom = 2*np.pi/Ts
-    om,P,Q = rao
-
-    omc,omr = np.meshgrid(om,om)
-    omd,oms = omr-omc,omr+omc
-
-    Pd,Ps = P
-    Qd,Qs = Q
-
-    phd = np.arctan2(Qd,Pd)
-    phs = np.arctan2(Qs,Ps)
-
-    oMin,oMax = np.ceil(min(om)/dom)*dom,np.floor(max(om)/dom)*dom
-
-    ts = np.arange(0,Ts,1/Fs)
-    ns = len(ts)
-
-    omi = np.arange(oMin,oMax,dom)
-    omci,omri = np.meshgrid(omi,omi)
-    nomi = len(omi)
-    print(nomi)
-
-    fpd = sci.RegularGridInterpolator((om,om),Pd)
-    fps = sci.RegularGridInterpolator((om,om),Ps)
-
-    fqd = sci.RegularGridInterpolator((om,om),Qd)
-    fqs = sci.RegularGridInterpolator((om,om),Qs)
-
-    fphd = sci.RegularGridInterpolator((om,om),Phd)
-    fphs = sci.RegularGridInterpolator((om,om),Phs)
-
-    Pdi = fpd((omri,omci))
-    Psi = fps((omri,omci))
-
-    Qdi = fqd((omri,omci))
-    Qsi = fqs((omri,omci))
-
-    phi = (1-2*np.random.random(nomi))*np.pi
-    phci,phri = np.meshgrid(phi,phi)
-
-    omdi = omri-omci
-    phdri = phri-phci
-
-
-    phdi = fphd((omri,omci))
-    phsi = fphs((omri,omci))
-
-    fi = omi/2/np.pi
-    s,f = Jonswap(wave,fi)
-
-    sc,sr = np.meshgrid(s,s)
-
-    wa   = np.sqrt(2*s/Ts)
-    wac  = np.sqrt(2*sc/Ts)
-    war  = np.sqrt(2*sr/Ts)
-
-    waa = war*wac
-
-    yp,yq = 0,0
-    ypp,yqq = 0,0
-
-    sMN = 0
-    ts = ts.reshape((ns,1))
-    imat = np.ones((ns,1))
-    for ir in range(sc.shape[0]):
-        ct = waa[ir]*imat*np.cos(omdi[ir]*ts+phdi[ir]*imat+phdri[ir]*imat)
-        st = waa[ir]*imat*np.sin(omdi[ir]*ts+phdi[ir]*imat+phdri[ir]*imat)
-        yp += Pdi[ir]@ct.T
-        yq += Qdi[ir]@st.T
-
-    y = np.flip(yp+yq)
-#    print(y.shape)
-#    stop
-#    for ir in range(sc.shape[0]):
-#        for ic in range(sc.shape[1]):
-#            ypp += wa[ir]*wa[ic]*(Pdi[ir,ic]*np.cos(-(omi[ir]-omi[ic])*ts+phdi[ir,ic]+phi[ir]-phi[ic])+
-#                                 sMN*Psi[ir,ic]*np.cos(-(omi[ir]+omi[ic])*ts+phsi[ir,ic]+phi[ir]+phi[ic]))
-#            yqq += wa[ir]*wa[ic]*(Qdi[ir,ic]*np.sin(-(omi[ir]-omi[ic])*ts+phdi[ir,ic]+phi[ir]-phi[ic])+
-#                                 sMN*Qsi[ir,ic]*np.sin(-(omi[ir]+omi[ic])*ts+phsi[ir,ic]+phi[ir]+phi[ic]))
-    return (y,ts)
 
 start_time = time.time()
 
@@ -145,117 +59,73 @@ fnam = iDir + nam + '.QTF'
 
 Few = np.load(cDir+nam+'-Fw.npy')
 
-
 om = np.real(Few[-1])
 fkda = np.abs(Few[:-1])
 fkdp = np.angle(Few[:-1])
 
-if os.path.exists(fnam)==False:
-    print('\nFile %s does not exist!'%fnam)
-    sys.exit()
-else:
-    print('\n File %s loaded!'%fnam)
-
-################### READ QTF
-IND = 0
-
-file1 = open(fnam, 'r')
-Lines = file1.readlines()
-file1.close()
-
-cs=((8,80))
-
-line=str(Lines[1:2])
-nf=int(line[6:8])
-
-nl=np.size(Lines)
-nc=5
-nt=int((nl-nc)/4)
-
-count=int(np.ceil(nf/6))+2
+IND = 2
 
 fe,_ = synth(Ts,Fs,(om,fkda[IND],fkdp[IND]),wave,SEED)
 
-qtf=np.zeros((nl-4))
-om=np.array([])
-for line in Lines[2:count]:
-    om=np.append(om,np.array(line[cs[0]:cs[1]].split(),dtype=np.float64))
-
-i = 0
-for line in Lines[count:]:
-    sline=np.array(line[cs[0]:cs[1]].split(),dtype=np.float64)
-    qtf[i] = sline[IND]
-    i+=1
-
-nom = len(om)
-
-Pd=qtf[0:-4:4]
-Qd=qtf[1:-3:4]
-Ps=qtf[3:-2:4]
-Qs=qtf[4::4]
-
-Pd = Pd.reshape(nom,-1)
-Qd = Qd.reshape(nom,-1)
-Ps = Ps.reshape(nom,-1)
-Qs = Qs.reshape(nom,-1)
-
-F2d = np.sqrt(Pd**2+Qd**2)
-F2s = np.sqrt(Ps**2+Qs**2)
-Phd = np.arctan2(Qd,Pd)
-Phs = np.arctan2(Qs,Ps)
-
-qtf = (om,(Pd,Ps),(Qd,Qs))
-
+################### READ QTF
+qtf = read_qtf(fnam,IND)
 y,ts = synth2(Ts,Fs,qtf,wave,SEED)
 ym = np.mean(y)
 
 print('Runtime: %3.2fs\n'%(float(time.time() - start_time)))
 
-fig,ax = plt.subplots(figsize=(8,3))
+fig,ax = plt.subplots(figsize=(9,2.7))
 ax.set_title('$F^{(2)}_{%i}$'%(IND+1))
-#ax.plot(ts,y)
-ax.plot(ts,y,label='matrix')
+ax.plot(ts,fe+ym,lw=2,alpha=.5,label='$O^{(1)}$')
+ax.plot(ts,y+fe,'--r',lw=.75,label='$O^{(2)}$')
 ax.legend()
 ax.hlines(ym,0,Ts,ls='--',lw=2,color='tab:red')
 ax.annotate('%.2e'%ym,(Ts,ym),ha='left',va='center')
 ax.set_xlim(right=1.25*Ts)
-plt.show()
+fig.savefig('2nd_order.png',dpi=300)
 
-#stop
-omc,omr = np.meshgrid(om,om)
-#Fd = Fd.reshape(nom,-1)
-#Fs = Fs.reshape(nom,-1)
-#Phd = Phd.reshape(nom,-1)
-#Phs = Phs.reshape(nom,-1)
+def animmm():
 
-Ts,fs = (30,10)
-t = np.arange(0,Ts,1/fs)
-ns = len(t)
-F = np.zeros((nom,nom,ns))
+    F2d = np.sqrt(Pd**2+Qd**2)
+    F2s = np.sqrt(Ps**2+Qs**2)
+    Phd = np.arctan2(Qd,Pd)
+    Phs = np.arctan2(Qs,Ps)
 
-for i,w1 in enumerate(om):
-    for ii,w2 in enumerate(om):
-        F[i,ii] = F2d[i,ii]*np.cos((w2-w1)*t+Phd[i,ii])+F2s[i,ii]*np.cos((w1+w2)*t+Phs[i,ii])
+    #stop
+    omc,omr = np.meshgrid(om,om)
+    #Fd = Fd.reshape(nom,-1)
+    #Fs = Fs.reshape(nom,-1)
+    #Phd = Phd.reshape(nom,-1)
+    #Phs = Phs.reshape(nom,-1)
 
-rao = (om,(Pd,Ps),(Qd,Qs))
+    Ts,fs = (30,10)
+    t = np.arange(0,Ts,1/fs)
+    ns = len(t)
+    F = np.zeros((nom,nom,ns))
 
-fig,ax = plt.subplots()
-fig.suptitle('$F_{%i}$'%(IND+1))
+    for i,w1 in enumerate(om):
+        for ii,w2 in enumerate(om):
+            F[i,ii] = F2d[i,ii]*np.cos((w2-w1)*t+Phd[i,ii])+F2s[i,ii]*np.cos((w1+w2)*t+Phs[i,ii])
 
-cnt = ax.contourf(omr,omc,F[:,:,0])
-fig.colorbar(cnt,ax=ax)
+    rao = (om,(Pd,Ps),(Qd,Qs))
 
-def animate(i):
-    ax.clear()
-    cnt = ax.contourf(omr,omc,F[:,:,i])
-    ax.set_title('%12s%8.1f'%('Time:',t[i]))
-    ax.set_aspect(1)
+    fig,ax = plt.subplots()
+    fig.suptitle('$F_{%i}$'%(IND+1))
 
-anim = ani.FuncAnimation(fig,animate,ns,interval=1000/fs,blit=False)
-#cbr = fig.colorbar(cnt)
+    cnt = ax.contourf(omr,omc,F[:,:,0])
+    fig.colorbar(cnt,ax=ax)
 
-#cbr.formatter.set_powerlimits((0,0))
-#cbr.formatter.set_useMathText(True)
-#ticklabel_format(axis='y',useMathText=True,scilimits=(0,0))
-#cbr.update_ticks()
-plt.show()
+    def animate(i):
+        ax.clear()
+        cnt = ax.contourf(omr,omc,F[:,:,i])
+        ax.set_title('%12s%8.1f'%('Time:',t[i]))
+        ax.set_aspect(1)
+
+    anim = ani.FuncAnimation(fig,animate,ns,interval=1000/fs,blit=False)
+    #cbr = fig.colorbar(cnt)
+
+    #cbr.formatter.set_powerlimits((0,0))
+    #cbr.formatter.set_useMathText(True)
+    #ticklabel_format(axis='y',useMathText=True,scilimits=(0,0))
+    #cbr.update_ticks()
+    plt.show()
