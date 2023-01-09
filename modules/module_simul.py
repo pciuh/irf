@@ -7,6 +7,8 @@ import scipy.optimize as sco
 import scipy.signal as scs
 import scipy.stats as sct
 
+from functools import lru_cache
+from numba import jit, njit
 from module_aqwa import Jonswap
 
 def adminf(om,A,B):
@@ -255,6 +257,24 @@ def synth(Ts,Fs,rao,wave,SEED):
 
     return (y,ts)
 
+#@lru_cache(maxsize = 100)
+@njit(fastmath=True)
+def sum_mat(waa,Pdi,Psi,Qdi,Qsi,omdi,omsi,phdi,phsi,phdri,phsri,imat,ts):
+    yp,yq = np.zeros_like(ts),np.zeros_like(ts)
+    for ir in range(waa.shape[0]):
+        ctd  = waa[ir]*imat*np.cos(omdi[ir]*ts+phdi[ir]*imat+phdri[ir]*imat)
+        cts = waa[ir]*imat*np.cos(omsi[ir]*ts+phsi[ir]*imat+phsri[ir]*imat)
+        std = waa[ir]*imat*np.sin(omdi[ir]*ts+phdi[ir]*imat+phdri[ir]*imat)
+        sts = waa[ir]*imat*np.sin(omsi[ir]*ts+phsi[ir]*imat+phsri[ir]*imat)
+
+        yp += np.dot(Pdi[ir],ctd.T) + np.dot(Psi[ir],cts.T)
+        yq += np.dot(Qdi[ir],std.T) + np.dot(Qsi[ir],sts.T)
+
+##        yp += Pdi[ir]@ctd.T + Psi[ir]@cts.T
+##        yq += Qdi[ir]@std.T + Qsi[ir]@sts.T
+
+    return(yp+yq)
+
 def synth2(Ts,Fs,rao,wave,SEED):
 
     if SEED:
@@ -323,17 +343,20 @@ def synth2(Ts,Fs,rao,wave,SEED):
 
     ts = ts.reshape((ns,1))
     imat = np.ones((ns,1))
-    for ir in range(sc.shape[0]):
-        ctd  = waa[ir]*imat*np.cos(omdi[ir]*ts+phdi[ir]*imat+phdri[ir]*imat)
-        cts = waa[ir]*imat*np.cos(omsi[ir]*ts+phsi[ir]*imat+phsri[ir]*imat)
-        std = waa[ir]*imat*np.sin(omdi[ir]*ts+phdi[ir]*imat+phdri[ir]*imat)
-        sts = waa[ir]*imat*np.sin(omsi[ir]*ts+phsi[ir]*imat+phsri[ir]*imat)
 
-        yp += Pdi[ir]@ctd.T + Psi[ir]@cts.T
-        yq += Qdi[ir]@std.T + Qsi[ir]@sts.T
 
-    y = np.flip(yp+yq)
-    return (y,ts)
+    #for ir in range(sc.shape[0]):
+        #ctd  = waa[ir]*imat*np.cos(omdi[ir]*ts+phdi[ir]*imat+phdri[ir]*imat)
+        #cts = waa[ir]*imat*np.cos(omsi[ir]*ts+phsi[ir]*imat+phsri[ir]*imat)
+        #std = waa[ir]*imat*np.sin(omdi[ir]*ts+phdi[ir]*imat+phdri[ir]*imat)
+        #sts = waa[ir]*imat*np.sin(omsi[ir]*ts+phsi[ir]*imat+phsri[ir]*imat)
+#
+        #yp += Pdi[ir]@ctd.T + Psi[ir]@cts.T
+        #yq += Qdi[ir]@std.T + Qsi[ir]@sts.T
+#
+    #y = np.flip(yp+yq)
+    y = sum_mat(waa,Pdi,Psi,Qdi,Qsi,omdi,omsi,phdi,phsi,phdri,phsri,imat,ts)
+    return (np.flip(y).T[0],ts)
 
 def state_space(om,A,B,NS,idx,PLT):
 
