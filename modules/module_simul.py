@@ -7,7 +7,12 @@ import scipy.optimize as sco
 import scipy.signal as scs
 import scipy.stats as sct
 
+<<<<<<< HEAD
 from numba import njit
+=======
+from functools import lru_cache
+from numba import jit, njit
+>>>>>>> 7eb2d58f06aebff5273a32dbda4ca69f17a28060
 from module_aqwa import Jonswap
 
 def adminf(om,A,B):
@@ -256,6 +261,7 @@ def synth(Ts,Fs,rao,wave,SEED):
 
     return (y,ts)
 
+<<<<<<< HEAD
 
 @njit(fastmath=True)
 def calsum(t,P,amp,om,ph,phr,flag):
@@ -270,6 +276,25 @@ def calsum(t,P,amp,om,ph,phr,flag):
             c = amp[ir]*imat*np.sin(om[ir]*t+ph[ir]*imat+phr[ir]*imat)
         yp += P[ir]@c.T
     return yp
+=======
+#@lru_cache(maxsize = 100)
+@njit(fastmath=True)
+def sum_mat(waa,Pdi,Psi,Qdi,Qsi,omdi,omsi,phdi,phsi,phdri,phsri,imat,ts):
+    yp,yq = np.zeros_like(ts),np.zeros_like(ts)
+    for ir in range(waa.shape[0]):
+        ctd  = waa[ir]*imat*np.cos(omdi[ir]*ts+phdi[ir]*imat+phdri[ir]*imat)
+        cts = waa[ir]*imat*np.cos(omsi[ir]*ts+phsi[ir]*imat+phsri[ir]*imat)
+        std = waa[ir]*imat*np.sin(omdi[ir]*ts+phdi[ir]*imat+phdri[ir]*imat)
+        sts = waa[ir]*imat*np.sin(omsi[ir]*ts+phsi[ir]*imat+phsri[ir]*imat)
+
+        yp += np.dot(Pdi[ir],ctd.T) + np.dot(Psi[ir],cts.T)
+        yq += np.dot(Qdi[ir],std.T) + np.dot(Qsi[ir],sts.T)
+
+##        yp += Pdi[ir]@ctd.T + Psi[ir]@cts.T
+##        yq += Qdi[ir]@std.T + Qsi[ir]@sts.T
+
+    return(yp+yq)
+>>>>>>> 7eb2d58f06aebff5273a32dbda4ca69f17a28060
 
 def synth2(Ts,Fs,rao,wave,SEED):
 
@@ -337,8 +362,15 @@ def synth2(Ts,Fs,rao,wave,SEED):
 
     yp,yq = 0,0
 
+<<<<<<< HEAD
     #ts = ts.reshape((ns,1))
     #imat = np.ones((ns,1))
+=======
+    ts = ts.reshape((ns,1))
+    imat = np.ones((ns,1))
+
+
+>>>>>>> 7eb2d58f06aebff5273a32dbda4ca69f17a28060
     #for ir in range(sc.shape[0]):
         #ctd  = waa[ir]*imat*np.cos(omdi[ir]*ts+phdi[ir]*imat+phdri[ir]*imat)
         #cts = waa[ir]*imat*np.cos(omsi[ir]*ts+phsi[ir]*imat+phsri[ir]*imat)
@@ -347,10 +379,17 @@ def synth2(Ts,Fs,rao,wave,SEED):
 #
         #yp += Pdi[ir]@ctd.T + Psi[ir]@cts.T
         #yq += Qdi[ir]@std.T + Qsi[ir]@sts.T
+<<<<<<< HEAD
     yd = calsum(ts,Pdi,waa,omdi,phdi,phdri,'P') + calsum(ts,Qdi,waa,omdi,phdi,phdri,'Q')
     ys = calsum(ts,Psi,waa,omsi,phsi,phsri,'P') + calsum(ts,Qsi,waa,omsi,phsi,phsri,'Q')
     y = np.flip(yd+ys)
     return (y,ts)
+=======
+#
+    #y = np.flip(yp+yq)
+    y = sum_mat(waa,Pdi,Psi,Qdi,Qsi,omdi,omsi,phdi,phsi,phdri,phsri,imat,ts)
+    return (np.flip(y).T[0],ts)
+>>>>>>> 7eb2d58f06aebff5273a32dbda4ca69f17a28060
 
 def state_space(om,A,B,NS,idx,PLT):
 
