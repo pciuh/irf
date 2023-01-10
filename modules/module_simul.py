@@ -7,6 +7,7 @@ import scipy.optimize as sco
 import scipy.signal as scs
 import scipy.stats as sct
 
+from numba import njit
 from module_aqwa import Jonswap
 
 def adminf(om,A,B):
@@ -255,6 +256,21 @@ def synth(Ts,Fs,rao,wave,SEED):
 
     return (y,ts)
 
+
+@njit(fastmath=True)
+def calsum(t,P,amp,om,ph,phr,flag):
+    n = len(t)
+    t = t.reshape((n,1))
+    imat = np.ones((n,1))
+    yp = np.zeros(n)
+    for ir in range(amp.shape[0]):
+        if flag == 'P':
+            c = amp[ir]*imat*np.cos(om[ir]*t+ph[ir]*imat+phr[ir]*imat)
+        else:
+            c = amp[ir]*imat*np.sin(om[ir]*t+ph[ir]*imat+phr[ir]*imat)
+        yp += P[ir]@c.T
+    return yp
+
 def synth2(Ts,Fs,rao,wave,SEED):
 
     if SEED:
@@ -321,18 +337,19 @@ def synth2(Ts,Fs,rao,wave,SEED):
 
     yp,yq = 0,0
 
-    ts = ts.reshape((ns,1))
-    imat = np.ones((ns,1))
-    for ir in range(sc.shape[0]):
-        ctd  = waa[ir]*imat*np.cos(omdi[ir]*ts+phdi[ir]*imat+phdri[ir]*imat)
-        cts = waa[ir]*imat*np.cos(omsi[ir]*ts+phsi[ir]*imat+phsri[ir]*imat)
-        std = waa[ir]*imat*np.sin(omdi[ir]*ts+phdi[ir]*imat+phdri[ir]*imat)
-        sts = waa[ir]*imat*np.sin(omsi[ir]*ts+phsi[ir]*imat+phsri[ir]*imat)
-
-        yp += Pdi[ir]@ctd.T + Psi[ir]@cts.T
-        yq += Qdi[ir]@std.T + Qsi[ir]@sts.T
-
-    y = np.flip(yp+yq)
+    #ts = ts.reshape((ns,1))
+    #imat = np.ones((ns,1))
+    #for ir in range(sc.shape[0]):
+        #ctd  = waa[ir]*imat*np.cos(omdi[ir]*ts+phdi[ir]*imat+phdri[ir]*imat)
+        #cts = waa[ir]*imat*np.cos(omsi[ir]*ts+phsi[ir]*imat+phsri[ir]*imat)
+        #std = waa[ir]*imat*np.sin(omdi[ir]*ts+phdi[ir]*imat+phdri[ir]*imat)
+        #sts = waa[ir]*imat*np.sin(omsi[ir]*ts+phsi[ir]*imat+phsri[ir]*imat)
+#
+        #yp += Pdi[ir]@ctd.T + Psi[ir]@cts.T
+        #yq += Qdi[ir]@std.T + Qsi[ir]@sts.T
+    yd = calsum(ts,Pdi,waa,omdi,phdi,phdri,'P') + calsum(ts,Qdi,waa,omdi,phdi,phdri,'Q')
+    ys = calsum(ts,Psi,waa,omsi,phsi,phsri,'P') + calsum(ts,Qsi,waa,omsi,phsi,phsri,'Q')
+    y = np.flip(yd+ys)
     return (y,ts)
 
 def state_space(om,A,B,NS,idx,PLT):

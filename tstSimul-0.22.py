@@ -146,7 +146,7 @@ Tp  = cth*np.sqrt(Hs)
 wave = {'HS':Hs,'TP':Tp,'GAM':gam}
 
 #### Simulation parameters
-Ts,Tc,Fs = (900.,30.,10.)
+Ts,Tc,Fs = (1800.,30.,10.)
 SEED = 291176
 SEED = 5112007
 SEED = 200278
