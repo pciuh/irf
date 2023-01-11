@@ -40,7 +40,6 @@ chn = df.columns
 t = df.Time.values
 zw = df.Wave.values
 
-
 nb = 2
 
 chnm = [x.replace('mot','m') for x in chn[nb:nb+3]]

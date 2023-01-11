@@ -22,6 +22,7 @@ import matplotlib.pyplot as plt
 
 import time
 
+from numba import njit
 from module_aqwa import countomega, readomega, readrao, readcoeff, readqtf
 from module_simul import *
 
@@ -146,7 +147,7 @@ Tp  = cth*np.sqrt(Hs)
 wave = {'HS':Hs,'TP':Tp,'GAM':gam}
 
 #### Simulation parameters
-Ts,Tc,Fs = (1800.,30.,10.)
+Ts,Tc,Fs = (900.,30.,10.)
 SEED = 291176
 SEED = 5112007
 SEED = 200278
@@ -213,6 +214,7 @@ for i in range(nd):
     fe2[i,nc:],_ = synth2(Ts,Fs,qtf,wave,SEED)
     zr[i],_      = synth(Ts,Fs,(om,zwa[i],zwp[i]),wave,SEED)
 
+print('Force Synthesis time: %3.2fs\n'%(float(time.time() - start_time)))
 ft = fe+fe2
 zw,_ = synth(Ts,Fs,(om,np.ones_like(om),np.zeros_like(om)),wave,SEED)
 
