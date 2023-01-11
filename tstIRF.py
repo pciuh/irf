@@ -77,7 +77,7 @@ chn = ['X','Y','Z','RX','RY','RZ']
 
 #### Case conditions
 MU  = 60.0
-VS  = 4.0
+VS  = 10.0
 US  = (VS-0)*1852/3600
 PRF = 'OMG'
 PRF = 'NOS'
