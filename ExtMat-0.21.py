@@ -36,7 +36,7 @@ MIR = False
 NS = 8    #### Maximum degree of State Space Model
 
 MU = 60.0
-VS = 14.0
+VS = 10.0
 
 SUF = 'OMG'
 SUF = 'NOS'

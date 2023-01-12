@@ -22,11 +22,12 @@ rDir = 'results/sim/'
 
 #### Case conditions
 MU  = 60.0
-VS  = 4.0
+VS  = 10.0
 US  = (VS-0)*1852/3600
 PRF = 'OMG'
 PRF = 'NOS'
 SEED = 200278
+SEED = 291176
 nam = 'D%.3dV%.3d-'%(MU,10*VS)+PRF
 suf = '-simT-S%.6d'%SEED
 fnam = rDir + nam + suf + '.ftr'

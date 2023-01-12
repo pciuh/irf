@@ -91,7 +91,7 @@ def solve(ns,Fs,Tc,few,M,B,C,SS):
     fr = np.zeros((ns,nd))
     M1 = np.linalg.inv(M)
 #    nc = int(Tc*Fs)
-    MET = 'RK4'
+    MET = 'RK2'
 
     for i in range(1,ns):
         print('%4.1f'%(100*i/ns)+'%',end='\r')
@@ -136,7 +136,7 @@ rDir = 'results/'
 
 #### Case conditions
 MU  = 60.0
-VS  = 4.0
+VS  = 10.0
 US  = (VS-0)*1852/3600
 PRF = 'OMG'
 PRF = 'NOS'
@@ -149,8 +149,8 @@ wave = {'HS':Hs,'TP':Tp,'GAM':gam}
 #### Simulation parameters
 Ts,Tc,Fs = (900.,30.,10.)
 SEED = 291176
-SEED = 5112007
-SEED = 200278
+#SEED = 5112007
+#SEED = 200278
 
 print('Simulation Conditions:')
 print('VS(knots) %8.1f\n'%VS)
